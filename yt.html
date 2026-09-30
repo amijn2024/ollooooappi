@@ -131,17 +131,9 @@
   </div>
 </div>
 
-<!-- ============================================================
-     SCRIPTS
-     ============================================================ -->
-
-<!-- 1. FFmpeg.wasm UMD loader -->
+<!-- FFmpeg -->
 <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/umd/index.js"></script>
-
-<!-- 2. YouTube downloader library — loaded as a standard script.
-     It attaches itself to window.Ytdl. -->
-<script src="https://cdn.jsdelivr.net/npm/@warren-bank/browser-ytdl-core@6.0.8-ybd-project.1/dist/es2020/ytdl-core.js"></script>
 
 <script>
 /* ============================ STATE ============================ */
@@ -178,11 +170,11 @@ function handlePreview(){
   if(!url){ showError('Please paste a video URL first.'); return; }
 
   const platform = detectPlatform(url);
-  if(!platform){ showError('Unsupported platform. Use a YouTube, Facebook, Instagram, or TikTok link.'); return; }
+  if(!platform){ showError('Unsupported platform.'); return; }
 
   currentVideoUrl = url;
   const videoId = extractVideoId(url, platform);
-  if(!videoId){ showError('Could not extract a video ID from that URL.'); return; }
+  if(!videoId){ showError('Could not extract a video ID.'); return; }
 
   const embedUrls = {
     youtube:  `https://www.youtube.com/embed/${videoId}`,
@@ -208,7 +200,7 @@ function selectFormat(el, format){
 }
 
 /* ============================================================
-   *** FIXED FFMPEG LOADER ***
+   FFmpeg LOADER (unchanged — this part works)
    ============================================================ */
 async function loadFFmpeg(){
   const { FFmpeg } = window.FFmpegWASM;
@@ -236,6 +228,72 @@ async function loadFFmpeg(){
   ffmpegLoaded = true;
 }
 
+/* ============================================================
+   YOUTUBE AUDIO RETRIEVAL via CORS PROXY
+   This is the only client-side path that can work.
+   ============================================================ */
+async function getYouTubeAudioStream(url){
+  const videoId = extractVideoId(url, 'youtube');
+  if(!videoId) throw new Error('Invalid YouTube URL.');
+
+  // We call YouTube's InnerTube API through a public CORS proxy.
+  // The proxy adds the Access-Control-Allow-Origin header for us.
+  const proxy = 'https://api.allorigins.win/raw?url=';
+  const innerTubeUrl = 'https://www.youtube.com/youtubei/v1/player?key=AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8&prettyPrint=false';
+
+  const body = {
+    videoId: videoId,
+    context: {
+      client: {
+        clientName: 'ANDROID',
+        clientVersion: '19.09.37',
+        androidSdkVersion: 30,
+        hl: 'en',
+        gl: 'US'
+      }
+    }
+  };
+
+  const resp = await fetch(proxy + encodeURIComponent(innerTubeUrl), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+
+  if(!resp.ok) throw new Error('YouTube API request failed (proxy error).');
+
+  const data = await resp.json();
+
+  if(!data.streamingData || !data.streamingData.adaptiveFormats){
+    throw new Error('YouTube returned no streaming data. The video may be restricted or the proxy was blocked.');
+  }
+
+  // Find audio-only adaptive formats
+  const audioFormats = data.streamingData.adaptiveFormats.filter(f =>
+    f.mimeType && f.mimeType.startsWith('audio/') && f.bitrate
+  );
+
+  if(!audioFormats.length){
+    throw new Error('No audio-only format available for this video.');
+  }
+
+  // Pick highest bitrate
+  audioFormats.sort((a,b)=>b.bitrate - a.bitrate);
+  const bestAudio = audioFormats[0];
+  const audioUrl = bestAudio.url;
+
+  if(!audioUrl){
+    throw new Error('Could not resolve audio stream URL. The video may use signature ciphering.');
+  }
+
+  // Download the audio through the proxy as well
+  const audioResp = await fetch(proxy + encodeURIComponent(audioUrl));
+  if(!audioResp.ok) throw new Error('Failed to download audio stream through proxy.');
+
+  const arrayBuffer = await audioResp.arrayBuffer();
+  return { data: new Uint8Array(arrayBuffer), name: 'input.mp4' };
+}
+
 /* ========================== CONVERT ============================ */
 async function handleConvert(){
   const platform = detectPlatform(currentVideoUrl);
@@ -257,12 +315,8 @@ async function handleConvert(){
       inputData = r.data; inputName = r.name;
     } else {
       updateProgress(15, 'Extracting media URL…');
-      const directUrl = await extractDirectMediaUrl(currentVideoUrl, platform);
-      if(!directUrl){
-        throw new Error('Could not extract a direct media URL from this platform. ' +
-          'Facebook / Instagram / TikTok often block browser-based extraction. ' +
-          'Try a YouTube link instead.');
-      }
+      const directUrl = await extractDirectMediaUrl(currentVideoUrl);
+      if(!directUrl) throw new Error('Could not extract a direct media URL from this platform.');
       updateProgress(25, 'Downloading media…');
       const resp = await fetch(directUrl);
       if(!resp.ok) throw new Error('Failed to download media stream.');
@@ -305,60 +359,17 @@ async function handleConvert(){
   }catch(err){
     console.error(err);
     hideElement('progressSection');
-    showError(err.message || 'Conversion failed. Please try again.');
+    showError(err.message || 'Conversion failed.');
   }finally{
     convertBtn.disabled = false;
   }
 }
 
-/* ==================== YOUTUBE STREAM FETCH ===================== */
-async function getYouTubeAudioStream(url){
-  // The library attaches itself to window.Ytdl.
-  if(!window.Ytdl || !window.Ytdl.YtdlCore){
-    throw new Error('YouTube downloader library failed to load. Please refresh the page.');
-  }
-
-  // Create a new YtdlCore instance
-  const ytdl = new window.Ytdl.YtdlCore({
-    logDisplay: ['error'],
-    disableInitialSetup: false,
-    disableBasicCache: true,
-    disableFileCache: true,
-    disablePoTokenAutoGeneration: true,
-    noUpdate: true
-  });
-
-  // Get full video info (includes formats)
-  const info = await ytdl.getFullInfo(url);
-
-  // The v6 API returns an object with a `formats` array.
-  // We filter for audio-only formats manually.
-  const audioFormats = info.formats.filter(f => f.hasAudio && !f.hasVideo);
-
-  if(!audioFormats.length) throw new Error('No audio-only format available for this video.');
-
-  // Sort by bitrate and pick the best
-  audioFormats.sort((a,b)=>(b.audioBitrate||0)-(a.audioBitrate||0));
-  const bestAudio = audioFormats[0];
-
-  // Download the audio stream
-  const stream = ytdl.downloadFromInfo(info, { format: bestAudio });
-
-  const chunks = [];
-  for await (const chunk of stream) chunks.push(chunk);
-
-  const total = chunks.reduce((a,c)=>a+c.length,0);
-  const data = new Uint8Array(total);
-  let off = 0;
-  for(const c of chunks){ data.set(c, off); off += c.length; }
-
-  return { data, name: 'input.mp4' };
-}
-
 /* ================== DIRECT MEDIA URL EXTRACT =================== */
 async function extractDirectMediaUrl(url){
   try{
-    const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+    const proxy = 'https://api.allorigins.win/raw?url=';
+    const r = await fetch(proxy + encodeURIComponent(url));
     const html = await r.text();
     const patterns = [
       /"video_url":"([^"]+)"/,
