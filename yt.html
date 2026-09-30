@@ -207,28 +207,28 @@ function selectFormat(el, format){
    ============================================================ */
 async function loadFFmpeg(){
   const { FFmpeg } = window.FFmpegWASM;
+  const { toBlobURL } = window.FFmpegUtil;
+
   ffmpeg = new FFmpeg();
 
-  // 1. Fetch the worker script from CDN
+  // 1. Fetch the worker script (this part is correct)
   const workerScriptURL =
     'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/814.ffmpeg.js';
   const workerText = await fetch(workerScriptURL).then(r => {
     if(!r.ok) throw new Error('Failed to fetch FFmpeg worker script.');
     return r.text();
   });
-
-  // 2. Wrap it in a Blob — Blob URLs are same-origin with the page
   const workerBlob = new Blob([workerText], { type: 'application/javascript' });
   const workerBlobURL = URL.createObjectURL(workerBlob);
 
-  // 3. Point FFmpeg at the blob URL for the worker,
-  //    and at the non-mt core (no SharedArrayBuffer / COOP-COEP needed)
-  const coreBase = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd';
+  // 2. Use the ESM core build (this is the fix)
+  const baseURL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm';
 
   await ffmpeg.load({
     classWorkerURL: workerBlobURL,
-    coreURL:  `${coreBase}/ffmpeg-core.js`,
-    wasmURL:  `${coreBase}/ffmpeg-core.wasm`,
+    // toBlobURL is the recommended way to avoid CORS issues with CDN assets
+    coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+    wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
   });
 
   ffmpegLoaded = true;
