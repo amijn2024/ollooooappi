@@ -1,389 +1,128 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Video to Audio Converter</title>
-  <style>
-    :root {
-      --bg: #0f0f13;
-      --card: #1a1a24;
-      --border: #2e2e3e;
-      --accent: #6c5ce7;
-      --accent-hover: #5a4bd1;
-      --text: #e2e2f0;
-      --muted: #8888a0;
-      --success: #00b894;
-      --error: #e17055;
-    }
-
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      padding: 40px 16px;
-    }
-
-    .container {
-      width: 100%;
-      max-width: 720px;
-    }
-
-    h1 {
-      font-size: 1.8rem;
-      font-weight: 700;
-      margin-bottom: 8px;
-      background: linear-gradient(135deg, #6c5ce7, #a29bfe);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .subtitle {
-      color: var(--muted);
-      margin-bottom: 32px;
-      font-size: 0.95rem;
-    }
-
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 24px;
-      margin-bottom: 24px;
-    }
-
-    .input-group {
-      display: flex;
-      gap: 10px;
-    }
-
-    input[type="url"] {
-      flex: 1;
-      padding: 14px 16px;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      color: var(--text);
-      font-size: 0.95rem;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-
-    input[type="url"]:focus {
-      border-color: var(--accent);
-    }
-
-    input[type="url"]::placeholder {
-      color: var(--muted);
-    }
-
-    .btn {
-      padding: 14px 24px;
-      border: none;
-      border-radius: 10px;
-      font-size: 0.95rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      white-space: nowrap;
-    }
-
-    .btn-primary {
-      background: var(--accent);
-      color: #fff;
-    }
-
-    .btn-primary:hover:not(:disabled) {
-      background: var(--accent-hover);
-    }
-
-    .btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    .btn-success {
-      background: var(--success);
-      color: #fff;
-    }
-
-    .btn-success:hover {
-      background: #00a381;
-    }
-
-    /* Preview */
-    .preview-container {
-      display: none;
-      margin-top: 20px;
-    }
-
-    .preview-container.active {
-      display: block;
-    }
-
-    .preview-iframe-wrapper {
-      position: relative;
-      width: 100%;
-      padding-bottom: 56.25%; /* 16:9 */
-      border-radius: 12px;
-      overflow: hidden;
-      background: #000;
-      border: 1px solid var(--border);
-    }
-
-    .preview-iframe-wrapper iframe {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      border: none;
-    }
-
-    /* Format Options */
-    .options-section {
-      display: none;
-      margin-top: 20px;
-    }
-
-    .options-section.active {
-      display: block;
-    }
-
-    .options-label {
-      font-size: 0.85rem;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 12px;
-    }
-
-    .format-grid {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .format-option {
-      flex: 1;
-      min-width: 140px;
-      padding: 16px;
-      background: var(--bg);
-      border: 2px solid var(--border);
-      border-radius: 12px;
-      cursor: pointer;
-      text-align: center;
-      transition: all 0.2s;
-    }
-
-    .format-option:hover {
-      border-color: var(--accent);
-    }
-
-    .format-option.selected {
-      border-color: var(--accent);
-      background: rgba(108, 92, 231, 0.1);
-    }
-
-    .format-option .format-name {
-      font-size: 1.1rem;
-      font-weight: 700;
-      margin-bottom: 4px;
-    }
-
-    .format-option .format-desc {
-      font-size: 0.8rem;
-      color: var(--muted);
-    }
-
-    /* Progress */
-    .progress-section {
-      display: none;
-      margin-top: 20px;
-    }
-
-    .progress-section.active {
-      display: block;
-    }
-
-    .progress-bar-track {
-      width: 100%;
-      height: 8px;
-      background: var(--bg);
-      border-radius: 4px;
-      overflow: hidden;
-      margin-bottom: 10px;
-    }
-
-    .progress-bar-fill {
-      height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, var(--accent), #a29bfe);
-      border-radius: 4px;
-      transition: width 0.3s ease;
-    }
-
-    .progress-text {
-      font-size: 0.85rem;
-      color: var(--muted);
-      text-align: center;
-    }
-
-    /* Result */
-    .result-section {
-      display: none;
-      margin-top: 20px;
-      padding: 20px;
-      background: rgba(0, 184, 148, 0.1);
-      border: 1px solid var(--success);
-      border-radius: 12px;
-    }
-
-    .result-section.active {
-      display: block;
-    }
-
-    .result-section h3 {
-      color: var(--success);
-      font-size: 1rem;
-      margin-bottom: 8px;
-    }
-
-    .result-section p {
-      font-size: 0.85rem;
-      color: var(--muted);
-      margin-bottom: 14px;
-    }
-
-    .result-actions {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    /* Error */
-    .error-section {
-      display: none;
-      margin-top: 20px;
-      padding: 16px;
-      background: rgba(225, 112, 85, 0.1);
-      border: 1px solid var(--error);
-      border-radius: 12px;
-      color: var(--error);
-      font-size: 0.9rem;
-    }
-
-    .error-section.active {
-      display: block;
-    }
-
-    /* Info banner */
-    .info-banner {
-      display: flex;
-      gap: 10px;
-      padding: 14px;
-      background: rgba(108, 92, 231, 0.1);
-      border: 1px solid rgba(108, 92, 231, 0.3);
-      border-radius: 10px;
-      margin-bottom: 20px;
-      font-size: 0.85rem;
-      color: var(--muted);
-      line-height: 1.5;
-    }
-
-    .info-banner strong {
-      color: var(--text);
-    }
-
-    @media (max-width: 480px) {
-      .input-group {
-        flex-direction: column;
-      }
-      .format-grid {
-        flex-direction: column;
-      }
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Video to Audio Converter</title>
+<style>
+  :root{--bg:#0f0f13;--card:#1a1a24;--border:#2e2e3e;--accent:#6c5ce7;
+        --accent-hover:#5a4bd1;--text:#e2e2f0;--muted:#8888a0;
+        --success:#00b894;--error:#e17055;}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+       background:var(--bg);color:var(--text);min-height:100vh;display:flex;
+       justify-content:center;padding:40px 16px}
+  .container{width:100%;max-width:720px}
+  h1{font-size:1.8rem;font-weight:700;margin-bottom:8px;
+     background:linear-gradient(135deg,#6c5ce7,#a29bfe);
+     -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .subtitle{color:var(--muted);margin-bottom:32px;font-size:.95rem}
+  .card{background:var(--card);border:1px solid var(--border);
+        border-radius:16px;padding:24px;margin-bottom:24px}
+  .input-group{display:flex;gap:10px}
+  input[type="url"]{flex:1;padding:14px 16px;background:var(--bg);
+    border:1px solid var(--border);border-radius:10px;color:var(--text);
+    font-size:.95rem;outline:none;transition:border-color .2s}
+  input[type="url"]:focus{border-color:var(--accent)}
+  input[type="url"]::placeholder{color:var(--muted)}
+  .btn{padding:14px 24px;border:none;border-radius:10px;font-size:.95rem;
+       font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap}
+  .btn-primary{background:var(--accent);color:#fff}
+  .btn-primary:hover:not(:disabled){background:var(--accent-hover)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn-success{background:var(--success);color:#fff}
+  .btn-success:hover{background:#00a381}
+  .preview-container{display:none;margin-top:20px}
+  .preview-container.active{display:block}
+  .preview-iframe-wrapper{position:relative;width:100%;padding-bottom:56.25%;
+    border-radius:12px;overflow:hidden;background:#000;border:1px solid var(--border)}
+  .preview-iframe-wrapper iframe{position:absolute;top:0;left:0;
+    width:100%;height:100%;border:none}
+  .options-section{display:none;margin-top:20px}
+  .options-section.active{display:block}
+  .options-label{font-size:.85rem;color:var(--muted);text-transform:uppercase;
+    letter-spacing:.05em;margin-bottom:12px}
+  .format-grid{display:flex;gap:12px;flex-wrap:wrap}
+  .format-option{flex:1;min-width:140px;padding:16px;background:var(--bg);
+    border:2px solid var(--border);border-radius:12px;cursor:pointer;
+    text-align:center;transition:all .2s}
+  .format-option:hover{border-color:var(--accent)}
+  .format-option.selected{border-color:var(--accent);
+    background:rgba(108,92,231,.1)}
+  .format-option .format-name{font-size:1.1rem;font-weight:700;margin-bottom:4px}
+  .format-option .format-desc{font-size:.8rem;color:var(--muted)}
+  .progress-section{display:none;margin-top:20px}
+  .progress-section.active{display:block}
+  .progress-bar-track{width:100%;height:8px;background:var(--bg);
+    border-radius:4px;overflow:hidden;margin-bottom:10px}
+  .progress-bar-fill{height:100%;width:0%;
+    background:linear-gradient(90deg,var(--accent),#a29bfe);
+    border-radius:4px;transition:width .3s ease}
+  .progress-text{font-size:.85rem;color:var(--muted);text-align:center}
+  .result-section{display:none;margin-top:20px;padding:20px;
+    background:rgba(0,184,148,.1);border:1px solid var(--success);border-radius:12px}
+  .result-section.active{display:block}
+  .result-section h3{color:var(--success);font-size:1rem;margin-bottom:8px}
+  .result-section p{font-size:.85rem;color:var(--muted);margin-bottom:14px}
+  .result-actions{display:flex;gap:10px;flex-wrap:wrap}
+  .error-section{display:none;margin-top:20px;padding:16px;
+    background:rgba(225,112,85,.1);border:1px solid var(--error);
+    border-radius:12px;color:var(--error);font-size:.9rem}
+  .error-section.active{display:block}
+  .info-banner{display:flex;gap:10px;padding:14px;
+    background:rgba(108,92,231,.1);border:1px solid rgba(108,92,231,.3);
+    border-radius:10px;margin-bottom:20px;font-size:.85rem;
+    color:var(--muted);line-height:1.5}
+  .info-banner strong{color:var(--text)}
+  @media (max-width:480px){
+    .input-group{flex-direction:column}
+    .format-grid{flex-direction:column}
+  }
+</style>
 </head>
 <body>
 
 <div class="container">
   <h1>🎵 Video to Audio Converter</h1>
-  <p class="subtitle">
-    Paste a YouTube, Facebook, Instagram, or TikTok link — preview the video and download the audio as MP3 or WAV.
-  </p>
+  <p class="subtitle">Paste a YouTube, Facebook, Instagram, or TikTok link — preview the video and download the audio as MP3 or WAV.</p>
 
   <div class="info-banner">
     <span>💡</span>
-    <div>
-      <strong>100% Client-Side.</strong> Your files never leave your device.
-      Everything is processed in your browser using FFmpeg.wasm.
-    </div>
+    <div><strong>100% Client-Side.</strong> Your files never leave your device. Everything is processed in your browser using FFmpeg.wasm.</div>
   </div>
 
-  <!-- Step 1: URL Input -->
   <div class="card">
     <div class="input-group">
-      <input
-        type="url"
-        id="videoUrl"
-        placeholder="https://www.youtube.com/watch?v=..."
-        autocomplete="off"
-      />
-      <button class="btn btn-primary" id="previewBtn" onclick="handlePreview()">
-        Preview
-      </button>
+      <input type="url" id="videoUrl" placeholder="https://www.youtube.com/watch?v=..." autocomplete="off" />
+      <button class="btn btn-primary" id="previewBtn" onclick="handlePreview()">Preview</button>
     </div>
 
-    <!-- Preview -->
     <div class="preview-container" id="previewContainer">
       <div class="preview-iframe-wrapper" id="previewWrapper"></div>
     </div>
 
-    <!-- Format Options -->
     <div class="options-section" id="optionsSection">
       <p class="options-label">Choose output format</p>
       <div class="format-grid">
-        <div class="format-option selected" data-format="mp3" onclick="selectFormat(this, 'mp3')">
+        <div class="format-option selected" data-format="mp3" onclick="selectFormat(this,'mp3')">
           <div class="format-name">MP3</div>
           <div class="format-desc">Compressed · Small size</div>
         </div>
-        <div class="format-option" data-format="wav" onclick="selectFormat(this, 'wav')">
+        <div class="format-option" data-format="wav" onclick="selectFormat(this,'wav')">
           <div class="format-name">WAV</div>
           <div class="format-desc">Lossless · Large size</div>
         </div>
       </div>
-      <button
-        class="btn btn-primary"
-        id="convertBtn"
-        style="margin-top: 16px; width: 100%;"
-        onclick="handleConvert()"
-      >
-        Convert to Audio
-      </button>
+      <button class="btn btn-primary" id="convertBtn" style="margin-top:16px;width:100%" onclick="handleConvert()">Convert to Audio</button>
     </div>
 
-    <!-- Progress -->
     <div class="progress-section" id="progressSection">
-      <div class="progress-bar-track">
-        <div class="progress-bar-fill" id="progressFill"></div>
-      </div>
+      <div class="progress-bar-track"><div class="progress-bar-fill" id="progressFill"></div></div>
       <p class="progress-text" id="progressText">Initializing…</p>
     </div>
 
-    <!-- Error -->
     <div class="error-section" id="errorSection"></div>
 
-    <!-- Result -->
     <div class="result-section" id="resultSection">
       <h3>✅ Conversion Complete</h3>
       <p id="resultInfo"></p>
@@ -392,284 +131,212 @@
   </div>
 </div>
 
-<!-- ============================================================
-     SCRIPTS
-     ============================================================ -->
-
-<!-- 1. FFmpeg.wasm (for audio conversion) -->
 <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/umd/index.js"></script>
-
-<!-- 2. browser-ytdl-core (for YouTube stream extraction) -->
 <script src="https://cdn.jsdelivr.net/npm/@warren-bank/browser-ytdl-core@6.0.8-ybd-project.1/dist/es2020/ytdl-core.js"></script>
 
 <script>
-/* ============================================================
-   STATE
-   ============================================================ */
+/* ============================ STATE ============================ */
 let selectedFormat = 'mp3';
 let currentVideoUrl = '';
 let ffmpeg = null;
 let ffmpegLoaded = false;
 
-/* ============================================================
-   PLATFORM DETECTION
-   ============================================================ */
-function detectPlatform(url) {
-  if (/youtube\.com|youtu\.be/i.test(url)) return 'youtube';
-  if (/facebook\.com|fb\.watch/i.test(url)) return 'facebook';
-  if (/instagram\.com/i.test(url)) return 'instagram';
-  if (/tiktok\.com/i.test(url)) return 'tiktok';
+/* ======================= PLATFORM DETECTION ==================== */
+function detectPlatform(url){
+  if(/youtube\.com|youtu\.be/i.test(url)) return 'youtube';
+  if(/facebook\.com|fb\.watch/i.test(url)) return 'facebook';
+  if(/instagram\.com/i.test(url)) return 'instagram';
+  if(/tiktok\.com/i.test(url)) return 'tiktok';
   return null;
 }
-
-function extractVideoId(url, platform) {
+function extractVideoId(url,platform){
   const patterns = {
-    youtube: /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
-    facebook: /facebook\.com\/.*\/videos\/(\d+)/,
-    instagram: /instagram\.com\/(?:p|reel|tv)\/([a-zA-Z0-9_-]+)/,
-    tiktok: /tiktok\.com\/.*\/video\/(\d+)/
+    youtube:/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+    facebook:/facebook\.com\/.*\/videos\/(\d+)/,
+    instagram:/instagram\.com\/(?:p|reel|tv)\/([a-zA-Z0-9_-]+)/,
+    tiktok:/tiktok\.com\/.*\/video\/(\d+)/
   };
-  const match = url.match(patterns[platform]);
-  return match ? match[1] : null;
+  const m = url.match(patterns[platform]);
+  return m ? m[1] : null;
 }
 
-/* ============================================================
-   STEP 1: PREVIEW
-   ============================================================ */
-function handlePreview() {
-  const urlInput = document.getElementById('videoUrl');
-  const url = urlInput.value.trim();
+/* ========================== PREVIEW ============================ */
+function handlePreview(){
+  const url = document.getElementById('videoUrl').value.trim();
+  ['previewContainer','optionsSection','progressSection','resultSection','errorSection']
+    .forEach(hideElement);
 
-  // Reset UI
-  hideElement('previewContainer');
-  hideElement('optionsSection');
-  hideElement('progressSection');
-  hideElement('resultSection');
-  hideElement('errorSection');
-
-  if (!url) {
-    showError('Please paste a video URL first.');
-    return;
-  }
+  if(!url){ showError('Please paste a video URL first.'); return; }
 
   const platform = detectPlatform(url);
-  if (!platform) {
-    showError('Unsupported platform. Please use a YouTube, Facebook, Instagram, or TikTok link.');
-    return;
-  }
+  if(!platform){ showError('Unsupported platform. Use a YouTube, Facebook, Instagram, or TikTok link.'); return; }
 
   currentVideoUrl = url;
   const videoId = extractVideoId(url, platform);
+  if(!videoId){ showError('Could not extract a video ID from that URL.'); return; }
 
-  if (!videoId) {
-    showError('Could not extract a video ID from that URL. Please check the link and try again.');
-    return;
-  }
-
-  // Build embed URL
   const embedUrls = {
-    youtube: `https://www.youtube.com/embed/${videoId}`,
+    youtube:  `https://www.youtube.com/embed/${videoId}`,
     facebook: `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}`,
-    instagram: `https://www.instagram.com/p/${videoId}/embed/`,
-    tiktok: `https://www.tiktok.com/embed/v2/${videoId}`
+    instagram:`https://www.instagram.com/p/${videoId}/embed/`,
+    tiktok:   `https://www.tiktok.com/embed/v2/${videoId}`
   };
 
-  const wrapper = document.getElementById('previewWrapper');
-  wrapper.innerHTML = `
-    <iframe
-      src="${embedUrls[platform]}"
-      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-      allowfullscreen
-      loading="lazy"
-    ></iframe>
-  `;
+  document.getElementById('previewWrapper').innerHTML =
+    `<iframe src="${embedUrls[platform]}"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen loading="lazy"></iframe>`;
 
   showElement('previewContainer');
   showElement('optionsSection');
 }
 
-/* ============================================================
-   STEP 2: FORMAT SELECTION
-   ============================================================ */
-function selectFormat(el, format) {
-  document.querySelectorAll('.format-option').forEach(opt => opt.classList.remove('selected'));
+/* ======================= FORMAT SELECTION ====================== */
+function selectFormat(el, format){
+  document.querySelectorAll('.format-option').forEach(o=>o.classList.remove('selected'));
   el.classList.add('selected');
   selectedFormat = format;
 }
 
 /* ============================================================
-   STEP 3: CONVERSION
+   *** THE KEY FIX ***
+   Load FFmpeg using a same-origin Blob URL for the worker,
+   so the browser's same-origin policy is satisfied without
+   self-hosting the worker file.
    ============================================================ */
-async function handleConvert() {
-  const platform = detectPlatform(currentVideoUrl);
-  const convertBtn = document.getElementById('convertBtn');
-
-  hideElement('errorSection');
-  hideElement('resultSection');
-  convertBtn.disabled = true;
-
-  try {
-    // --- Step A: Show progress ---
-    showElement('progressSection');
-    updateProgress(0, 'Initializing FFmpeg…');
-
-    // --- Step B: Load FFmpeg (lazy, once) ---
-    if (!ffmpegLoaded) {
-      await loadFFmpeg();
-    }
-
-    // --- Step C: Get the audio source ---
-    updateProgress(10, 'Fetching video stream…');
-    let inputData;
-    let inputName;
-
-    if (platform === 'youtube') {
-      // YouTube: use browser-ytdl-core to get the audio stream
-      const result = await getYouTubeAudioStream(currentVideoUrl);
-      inputData = result.data;
-      inputName = result.name;
-    } else {
-      // Facebook / Instagram / TikTok: fetch the page, extract direct media URL
-      updateProgress(10, 'Extracting media URL…');
-      const directUrl = await extractDirectMediaUrl(currentVideoUrl, platform);
-      if (!directUrl) {
-        throw new Error(
-          'Could not extract a direct media URL from this platform. ' +
-          'These platforms often block browser-based extraction. ' +
-          'Try a YouTube link, or open the video in a new tab and download the audio manually.'
-        );
-      }
-      updateProgress(20, 'Downloading media…');
-      const response = await fetch(directUrl);
-      if (!response.ok) throw new Error('Failed to download media stream.');
-      const arrayBuffer = await response.arrayBuffer();
-      inputData = new Uint8Array(arrayBuffer);
-      inputName = 'input.mp4';
-    }
-
-    // --- Step D: Write input to FFmpeg virtual FS ---
-    updateProgress(40, 'Writing input file…');
-    await ffmpeg.writeFile(inputName, inputData);
-
-    // --- Step E: Run FFmpeg conversion ---
-    const outputName = selectedFormat === 'mp3' ? 'output.mp3' : 'output.wav';
-    const ffmpegArgs = selectedFormat === 'mp3'
-      ? ['-i', inputName, '-vn', '-acodec', 'libmp3lame', '-q:a', '2', outputName]
-      : ['-i', inputName, '-vn', '-acodec', 'pcm_s16le', outputName];
-
-    updateProgress(50, `Converting to ${selectedFormat.toUpperCase()}…`);
-
-    // Attach progress listener
-    ffmpeg.on('progress', ({ progress }) => {
-      const pct = 50 + Math.round(progress * 45);
-      updateProgress(Math.min(pct, 95), `Converting… ${Math.round(progress * 100)}%`);
-    });
-
-    await ffmpeg.exec(ffmpegArgs);
-
-    // --- Step F: Read output ---
-    updateProgress(96, 'Reading output file…');
-    const outputData = await ffmpeg.readFile(outputName);
-
-    // --- Step G: Create download blob ---
-    const mimeType = selectedFormat === 'mp3' ? 'audio/mpeg' : 'audio/wav';
-    const blob = new Blob([outputData.buffer], { type: mimeType });
-    const blobUrl = URL.createObjectURL(blob);
-
-    // Clean up virtual FS
-    try { await ffmpeg.deleteFile(inputName); } catch (_) {}
-    try { await ffmpeg.deleteFile(outputName); } catch (_) {}
-
-    // --- Step H: Show result ---
-    updateProgress(100, 'Done!');
-    showResult(blobUrl, selectedFormat, blob.size);
-
-  } catch (err) {
-    console.error(err);
-    hideElement('progressSection');
-    showError(err.message || 'Conversion failed. Please try again.');
-  } finally {
-    convertBtn.disabled = false;
-  }
-}
-
-/* ============================================================
-   FFMPEG LOADER
-   ============================================================ */
-async function loadFFmpeg() {
+async function loadFFmpeg(){
   const { FFmpeg } = window.FFmpegWASM;
-  const { toBlobURL } = window.FFmpegUtil;
-
   ffmpeg = new FFmpeg();
 
-  const baseURL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd';
+  // 1. Fetch the worker script from CDN
+  const workerScriptURL =
+    'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/814.ffmpeg.js';
+  const workerText = await fetch(workerScriptURL).then(r => {
+    if(!r.ok) throw new Error('Failed to fetch FFmpeg worker script.');
+    return r.text();
+  });
+
+  // 2. Wrap it in a Blob — Blob URLs are same-origin with the page
+  const workerBlob = new Blob([workerText], { type: 'application/javascript' });
+  const workerBlobURL = URL.createObjectURL(workerBlob);
+
+  // 3. Point FFmpeg at the blob URL for the worker,
+  //    and at the non-mt core (no SharedArrayBuffer / COOP-COEP needed)
+  const coreBase = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd';
+
   await ffmpeg.load({
-    coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-    wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+    classWorkerURL: workerBlobURL,
+    coreURL:  `${coreBase}/ffmpeg-core.js`,
+    wasmURL:  `${coreBase}/ffmpeg-core.wasm`,
   });
 
   ffmpegLoaded = true;
 }
 
-/* ============================================================
-   YOUTUBE AUDIO STREAM EXTRACTION
-   ============================================================ */
-async function getYouTubeAudioStream(url) {
+/* ========================== CONVERT ============================ */
+async function handleConvert(){
+  const platform = detectPlatform(currentVideoUrl);
+  const convertBtn = document.getElementById('convertBtn');
+  hideElement('errorSection');
+  hideElement('resultSection');
+  convertBtn.disabled = true;
+
+  try{
+    showElement('progressSection');
+    updateProgress(0, 'Initializing FFmpeg…');
+    if(!ffmpegLoaded) await loadFFmpeg();
+
+    updateProgress(10, 'Fetching video stream…');
+    let inputData, inputName;
+
+    if(platform === 'youtube'){
+      const r = await getYouTubeAudioStream(currentVideoUrl);
+      inputData = r.data; inputName = r.name;
+    } else {
+      updateProgress(15, 'Extracting media URL…');
+      const directUrl = await extractDirectMediaUrl(currentVideoUrl, platform);
+      if(!directUrl){
+        throw new Error('Could not extract a direct media URL from this platform. ' +
+          'Facebook / Instagram / TikTok often block browser-based extraction. ' +
+          'Try a YouTube link instead.');
+      }
+      updateProgress(25, 'Downloading media…');
+      const resp = await fetch(directUrl);
+      if(!resp.ok) throw new Error('Failed to download media stream.');
+      inputData = new Uint8Array(await resp.arrayBuffer());
+      inputName = 'input.mp4';
+    }
+
+    updateProgress(40, 'Writing input file…');
+    await ffmpeg.writeFile(inputName, inputData);
+
+    const outputName = selectedFormat === 'mp3' ? 'output.mp3' : 'output.wav';
+    const args = selectedFormat === 'mp3'
+      ? ['-i', inputName, '-vn', '-acodec', 'libmp3lame', '-q:a', '2', outputName]
+      : ['-i', inputName, '-vn', '-acodec', 'pcm_s16le', outputName];
+
+    updateProgress(50, `Converting to ${selectedFormat.toUpperCase()}…`);
+
+    const onProgress = ({ progress }) => {
+      const pct = 50 + Math.round(progress * 45);
+      updateProgress(Math.min(pct, 95), `Converting… ${Math.round(progress*100)}%`);
+    };
+    ffmpeg.on('progress', onProgress);
+
+    await ffmpeg.exec(args);
+    ffmpeg.off('progress', onProgress);
+
+    updateProgress(96, 'Reading output file…');
+    const outputData = await ffmpeg.readFile(outputName);
+
+    const mime = selectedFormat === 'mp3' ? 'audio/mpeg' : 'audio/wav';
+    const blob = new Blob([outputData.buffer], { type: mime });
+    const blobUrl = URL.createObjectURL(blob);
+
+    try{ await ffmpeg.deleteFile(inputName); }catch(_){}
+    try{ await ffmpeg.deleteFile(outputName); }catch(_){}
+
+    updateProgress(100, 'Done!');
+    showResult(blobUrl, selectedFormat, blob.size);
+
+  }catch(err){
+    console.error(err);
+    hideElement('progressSection');
+    showError(err.message || 'Conversion failed. Please try again.');
+  }finally{
+    convertBtn.disabled = false;
+  }
+}
+
+/* ==================== YOUTUBE STREAM FETCH ===================== */
+async function getYouTubeAudioStream(url){
   const ytdl = window.ytdl;
+  if(!ytdl) throw new Error('YouTube downloader library failed to load.');
 
-  if (!ytdl) {
-    throw new Error('YouTube downloader library failed to load. Please refresh the page.');
-  }
-
-  // Get info
   const info = await ytdl.getInfo(url);
-
-  // Prefer audio-only formats
   const audioFormats = ytdl.filterFormats(info.formats, 'audioonly');
+  if(!audioFormats.length) throw new Error('No audio-only format available.');
 
-  if (!audioFormats.length) {
-    throw new Error('No audio-only format available for this video.');
-  }
+  audioFormats.sort((a,b)=>(b.audioBitrate||0)-(a.audioBitrate||0));
+  const stream = ytdl.downloadFromInfo(info, { format: audioFormats[0] });
 
-  // Pick the best audio format (highest bitrate)
-  audioFormats.sort((a, b) => (b.audioBitrate || 0) - (a.audioBitrate || 0));
-  const bestAudio = audioFormats[0];
-
-  // Download the audio stream
-  const stream = ytdl.downloadFromInfo(info, { format: bestAudio });
-
-  // Convert stream to Uint8Array
   const chunks = [];
-  for await (const chunk of stream) {
-    chunks.push(chunk);
-  }
+  for await (const chunk of stream) chunks.push(chunk);
 
-  const totalLength = chunks.reduce((acc, c) => acc + c.length, 0);
-  const data = new Uint8Array(totalLength);
-  let offset = 0;
-  for (const chunk of chunks) {
-    data.set(chunk, offset);
-    offset += chunk.length;
-  }
+  const total = chunks.reduce((a,c)=>a+c.length,0);
+  const data = new Uint8Array(total);
+  let off = 0;
+  for(const c of chunks){ data.set(c, off); off += c.length; }
 
   return { data, name: 'input.mp4' };
 }
 
-/* ============================================================
-   DIRECT MEDIA URL EXTRACTION (Facebook / Instagram / TikTok)
-   ============================================================ */
-async function extractDirectMediaUrl(url, platform) {
-  // These platforms heavily restrict CORS.
-  // Strategy: fetch the page HTML and look for common video URL patterns.
-
-  try {
-    const response = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0' }
-    });
-    const html = await response.text();
-
-    // Common patterns for video URLs in page source
+/* ================== DIRECT MEDIA URL EXTRACT =================== */
+async function extractDirectMediaUrl(url){
+  try{
+    const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+    const html = await r.text();
     const patterns = [
       /"video_url":"([^"]+)"/,
       /"playAddr":"([^"]+)"/,
@@ -678,74 +345,43 @@ async function extractDirectMediaUrl(url, platform) {
       /<meta property="og:video:url" content="([^"]+)"/,
       /"src":"(https?:\/\/[^"]+\.mp4[^"]*)"/
     ];
-
-    for (const pattern of patterns) {
-      const match = html.match(pattern);
-      if (match && match[1]) {
-        return match[1].replace(/\\u002F/g, '/').replace(/\\\//g, '/');
-      }
+    for(const p of patterns){
+      const m = html.match(p);
+      if(m && m[1]) return m[1].replace(/\\u002F/g,'/').replace(/\\\//g,'/');
     }
-  } catch (err) {
-    console.warn('Direct URL extraction failed:', err);
-  }
-
+  }catch(err){ console.warn('Direct URL extraction failed:', err); }
   return null;
 }
 
-/* ============================================================
-   UI HELPERS
-   ============================================================ */
-function showElement(id) {
-  document.getElementById(id).classList.add('active');
-}
-
-function hideElement(id) {
-  document.getElementById(id).classList.remove('active');
-}
-
-function updateProgress(pct, text) {
-  document.getElementById('progressFill').style.width = `${pct}%`;
+/* ============================ UI =============================== */
+function showElement(id){ document.getElementById(id).classList.add('active'); }
+function hideElement(id){ document.getElementById(id).classList.remove('active'); }
+function updateProgress(pct, text){
+  document.getElementById('progressFill').style.width = pct + '%';
   document.getElementById('progressText').textContent = text;
 }
-
-function showError(message) {
+function showError(msg){
   const el = document.getElementById('errorSection');
-  el.textContent = `❌ ${message}`;
+  el.textContent = '❌ ' + msg;
   el.classList.add('active');
 }
-
-function showResult(blobUrl, format, sizeBytes) {
+function showResult(blobUrl, format, size){
   hideElement('progressSection');
-
-  const sizeMB = (sizeBytes / (1024 * 1024)).toFixed(2);
   document.getElementById('resultInfo').textContent =
-    `${format.toUpperCase()} · ${sizeMB} MB`;
-
-  const actions = document.getElementById('resultActions');
-  actions.innerHTML = `
-    <a
-      href="${blobUrl}"
-      download="audio.${format}"
-      class="btn btn-success"
-      style="text-decoration: none; display: inline-block;"
-    >
+    `${format.toUpperCase()} · ${(size/1048576).toFixed(2)} MB`;
+  document.getElementById('resultActions').innerHTML = `
+    <a href="${blobUrl}" download="audio.${format}" class="btn btn-success"
+       style="text-decoration:none;display:inline-block;">
       ⬇ Download ${format.toUpperCase()}
     </a>
-    <button class="btn btn-primary" onclick="handleConvert()">
-      Convert Again
-    </button>
-  `;
-
+    <button class="btn btn-primary" onclick="handleConvert()">Convert Again</button>`;
   showElement('resultSection');
 }
 
-/* ============================================================
-   INIT
-   ============================================================ */
+/* ============================ INIT ============================= */
 document.addEventListener('DOMContentLoaded', () => {
-  // Allow Enter key to trigger preview
-  document.getElementById('videoUrl').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') handlePreview();
+  document.getElementById('videoUrl').addEventListener('keydown', e => {
+    if(e.key === 'Enter') handlePreview();
   });
 });
 </script>
