@@ -131,9 +131,20 @@
   </div>
 </div>
 
+<!-- ============================================================
+     SCRIPTS
+     ============================================================ -->
+
+<!-- 1. FFmpeg.wasm UMD loader (for the FFmpeg class itself) -->
 <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/umd/index.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@warren-bank/browser-ytdl-core@6.0.8-ybd-project.1/dist/es2020/ytdl-core.js"></script>
+
+<!-- 2. YouTube downloader library — loaded as an ES module and attached to window -->
+<script type="module">
+  import ytdl from 'https://cdn.jsdelivr.net/npm/@warren-bank/browser-ytdl-core@6.0.8-ybd-project.1/dist/es2020/ytdl-core.js';
+  window.ytdl = ytdl;
+  console.log('✅ ytdl-core loaded:', typeof window.ytdl);
+</script>
 
 <script>
 /* ============================ STATE ============================ */
@@ -200,10 +211,8 @@ function selectFormat(el, format){
 }
 
 /* ============================================================
-   *** THE KEY FIX ***
-   Load FFmpeg using a same-origin Blob URL for the worker,
-   so the browser's same-origin policy is satisfied without
-   self-hosting the worker file.
+   *** FIXED FFMPEG LOADER ***
+   Uses the ESM core + a Blob URL for the worker.
    ============================================================ */
 async function loadFFmpeg(){
   const { FFmpeg } = window.FFmpegWASM;
@@ -211,7 +220,7 @@ async function loadFFmpeg(){
 
   ffmpeg = new FFmpeg();
 
-  // 1. Fetch the worker script (this part is correct)
+  // 1. Fetch the worker script and wrap it in a same-origin Blob URL
   const workerScriptURL =
     'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/814.ffmpeg.js';
   const workerText = await fetch(workerScriptURL).then(r => {
@@ -221,12 +230,11 @@ async function loadFFmpeg(){
   const workerBlob = new Blob([workerText], { type: 'application/javascript' });
   const workerBlobURL = URL.createObjectURL(workerBlob);
 
-  // 2. Use the ESM core build (this is the fix)
+  // 2. Use the ESM core build (the critical fix)
   const baseURL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm';
 
   await ffmpeg.load({
     classWorkerURL: workerBlobURL,
-    // toBlobURL is the recommended way to avoid CORS issues with CDN assets
     coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
     wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
   });
@@ -312,11 +320,11 @@ async function handleConvert(){
 /* ==================== YOUTUBE STREAM FETCH ===================== */
 async function getYouTubeAudioStream(url){
   const ytdl = window.ytdl;
-  if(!ytdl) throw new Error('YouTube downloader library failed to load.');
+  if(!ytdl) throw new Error('YouTube downloader library failed to load. Please refresh the page.');
 
   const info = await ytdl.getInfo(url);
   const audioFormats = ytdl.filterFormats(info.formats, 'audioonly');
-  if(!audioFormats.length) throw new Error('No audio-only format available.');
+  if(!audioFormats.length) throw new Error('No audio-only format available for this video.');
 
   audioFormats.sort((a,b)=>(b.audioBitrate||0)-(a.audioBitrate||0));
   const stream = ytdl.downloadFromInfo(info, { format: audioFormats[0] });
